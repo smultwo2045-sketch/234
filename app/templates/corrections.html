@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Корректировки SL</h1>
+<p class="hint" style="margin-top:-8px;margin-bottom:14px;">Н/к уборка (−) · Реконструкция (+) · Тех. (+)</p>
+
+{% for it in items %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px;">
+    <div>
+      <div class="title" style="font-weight:700;">{{ it.manager }}</div>
+      <div class="meta">{{ it.region }} · магазинов: {{ it.total }} · SL: {{ it.sl_percent }}</div>
+    </div>
+  </div>
+  <form action="/corrections/save" method="post">
+    <input type="hidden" name="manager" value="{{ it.manager }}">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div>
+        <label class="field-label">Н/к уборка</label>
+        <input type="number" name="q" min="0" max="50" value="{{ it.q }}">
+      </div>
+      <div>
+        <label class="field-label">Реконстр.</label>
+        <input type="number" name="nr" min="0" max="50" value="{{ it.nr }}">
+      </div>
+      <div>
+        <label class="field-label">Тех.</label>
+        <input type="number" name="tech" min="0" max="50" value="{{ it.tech }}">
+      </div>
+    </div>
+    <button type="submit" class="btn" style="margin-top:4px;">Применить</button>
+  </form>
+</div>
+{% else %}
+<div class="empty">Список менеджеров пуст — настройте в Настройках</div>
+{% endfor %}
+{% endblock %}

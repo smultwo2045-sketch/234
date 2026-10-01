@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Журнал смен</h1>
+<p class="hint" style="margin-top:-8px;margin-bottom:14px;">Смены &lt; 3 ч · адресная книга: {{ ab_count }}</p>
+
+<div class="card">
+  <div class="card-title">Загрузить файл смен</div>
+  <form action="/shifts/process" method="post" enctype="multipart/form-data">
+    <label class="file-input">
+      <strong>Выберите Excel (.xlsx)</strong>
+      <span>Колонки: Адрес магазина, Тип работы, Длительность смены</span>
+      <input type="file" name="file" accept=".xlsx,.xls" required onchange="this.form.submit()">
+    </label>
+    <button type="submit" class="btn">Анализ смен</button>
+  </form>
+</div>
+
+{% if ctx and ctx.report_date %}
+<div class="card">
+  <span class="meta">Дата из файла: <strong>{{ ctx.report_date }}</strong></span>
+</div>
+{% endif %}
+
+{% if report_rows %}
+<div class="card">
+  <div class="card-title">В отчёте ({{ report_rows|length }})</div>
+  <ul class="list">
+    {% for r in report_rows %}
+    <li>
+      <div class="title">{{ r.address }}</div>
+      <div class="meta">{{ r.manager }} · {{ r.duration }} · смен: {{ r.shifts_count }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% elif short_items is defined and short_items|length == 0 %}
+<div class="empty">Нет коротких смен или файл ещё не загружен</div>
+{% else %}
+<div class="empty">Загрузите файл смен для анализа</div>
+{% endif %}
+{% endblock %}

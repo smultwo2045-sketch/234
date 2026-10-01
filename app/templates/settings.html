@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Настройки</h1>
+
+<div class="card">
+  <div class="card-title">Менеджеры</div>
+  <ul class="list">
+    {% for m in managers %}
+    <li>
+      <div class="title">{{ m }}</div>
+      <div class="meta">
+        {% for reg, ms in regions.items() %}
+          {% if m in ms %}{{ reg }}{% endif %}
+        {% endfor %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="hint">Редактирование списка — через settings.json в data/</p>
+</div>
+
+<div class="card">
+  <div class="card-title">Регионы</div>
+  {% for reg, ms in regions.items() %}
+  <div style="margin-bottom:12px;">
+    <strong style="color:var(--accent);">{{ reg }}</strong>
+    <div class="meta">{{ ms|join(', ') }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-title">О программе</div>
+  <p style="margin:0;">WRS Mobile — веб-версия автоматизации отчётности.</p>
+  <p class="hint">Интерфейс в стиле корпоративного мониторинга. Данные хранятся в data/ на сервере.</p>
+</div>
+{% endblock %}

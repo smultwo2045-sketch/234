@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Прилегающая · дворники</h1>
+<p class="hint" style="margin-top:-8px;margin-bottom:14px;">Авторизация уборки прилегающей по графику</p>
+
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="label">По графику</div>
+    <div class="value">{{ n_total if n_total is not none else "—" }}</div>
+  </div>
+  <div class="kpi ok">
+    <div class="label">Открыли</div>
+    <div class="value">{{ n_worked if n_worked is not none else "—" }}</div>
+  </div>
+  <div class="kpi err">
+    <div class="label">Не авт.</div>
+    <div class="value">{{ n_nonauth if n_nonauth is not none else "—" }}</div>
+  </div>
+</div>
+
+{% if day_label %}
+<div class="card">
+  <span class="meta">День смены: <strong>{{ day_label }}</strong>
+    {% if schedule_count %} · график: {{ schedule_count }} маг.{% if ne_tr %} (не требуется: {{ ne_tr }}){% endif %}{% endif %}
+    {% if adj_count is defined %} · смен прилегающей: {{ adj_count }}{% endif %}
+  </span>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-title">1. График дворников</div>
+  <form action="/dvornik/import" method="post" enctype="multipart/form-data">
+    <label class="file-input">
+      <strong>{% if schedule_count %}Обновить график{% else %}Загрузить Excel графика{% endif %}</strong>
+      <span>Колонки: Адрес, График (и опционально SAP / № ТТ)</span>
+      <input type="file" name="file" accept=".xlsx,.xls" required onchange="this.form.submit()">
+    </label>
+    <button type="submit" class="btn btn-secondary">Импортировать график</button>
+  </form>
+  {% if schedule_count %}
+  <p class="hint">Загружено: <strong>{{ schedule_count }}</strong> магазинов
+    {% if ne_tr %} · «не требуется»: {{ ne_tr }}{% endif %}
+  </p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-title">2. Проверить авторизацию</div>
+  <p class="hint">Можно использовать ранее загруженный файл смен или загрузить здесь.</p>
+  <form action="/dvornik/check" method="post" enctype="multipart/form-data">
+    <label class="file-input">
+      <strong>Файл смен (необязательно)</strong>
+      <span>Если пусто — данные из «Журнал смен»</span>
+      <input type="file" name="file" accept=".xlsx,.xls">
+    </label>
+    <button type="submit" class="btn" {% if not schedule_count %}disabled{% endif %}>Проверить</button>
+  </form>
+  {% if not schedule_count %}
+  <p class="hint">Сначала загрузите график дворников.</p>
+  {% endif %}
+</div>
+
+{% if region_rows %}
+<div class="card">
+  <div class="card-title">SL по регионам</div>
+  {% for r in region_rows %}
+  <div style="margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;gap:8px;">
+      <span style="font-weight:600;">{{ r.region }}</span>
+      <span><strong>{{ r.sl_percent }}</strong> <span class="meta">({{ r.worked }}/{{ r.should }})</span></span>
+    </div>
+    {% set pct = (r.sl * 100) if r.sl is defined else 0 %}
+    <div class="sl-bar {% if pct < 80 %}err{% elif pct < 95 %}warn{% endif %}">
+      <span style="width: {{ [pct, 100]|min }}%"></span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if mgr_rows %}
+<div class="card">
+  <div class="card-title">По менеджерам</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Менеджер</th>
+          <th class="num">Должны</th>
+          <th class="num">Открыли</th>
+          <th class="num">Не авт.</th>
+          <th class="num">SL</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in mgr_rows %}
+        <tr>
+          <td>{{ r.manager }}</td>
+          <td class="num">{{ r.should }}</td>
+          <td class="num">{{ r.worked }}</td>
+          <td class="num">{{ r.nonauth }}</td>
+          <td class="num">
+            {% set pct = (r.sl * 100) if r.sl is defined else 0 %}
+            <span class="badge {% if pct >= 95 %}ok{% elif pct >= 80 %}warn{% else %}err{% endif %}">{{ r.sl_percent }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if nonauth %}
+<div class="card">
+  <div class="card-title">Не авторизованы ({{ nonauth|length }})</div>
+  <ul class="list">
+    {% for r in nonauth %}
+    <li>
+      <div class="title">{{ r.address_short or r.address }}</div>
+      <div class="meta">{{ r.manager }} · график: {{ r.schedule }}{% if r.sap %} · SAP {{ r.sap }}{% endif %}</div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% elif n_total is not none and n_total > 0 and not nonauth %}
+<div class="card">
+  <p style="margin:0;color:var(--ok);font-weight:700;">Все магазины по графику открыли уборку прилегающей.</p>
+</div>
+{% endif %}
+
+{% if report_text %}
+<div class="card">
+  <div class="card-title">Отчёт</div>
+  <div class="report" id="dv-report">{{ report_text }}</div>
+  <div class="btn-row" style="margin-top:10px;">
+    <button type="button" class="btn btn-secondary" onclick="copyDv()">Копировать</button>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function copyDv() {
+  var t = (document.getElementById('dv-report') || {}).innerText || '';
+  if (!t) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(t).then(function(){ alert('Скопировано'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = t; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    alert('Скопировано');
+  }
+}
+</script>
+{% endblock %}

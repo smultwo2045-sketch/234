@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Отчёт WRS</h1>
+<p class="hint" style="margin-top:-8px;margin-bottom:14px;">Адресная книга: {{ ab_count }} записей</p>
+
+<div class="card">
+  <div class="card-title">Загрузить WRS</div>
+  <form action="/wrs/process" method="post" enctype="multipart/form-data">
+    <label class="file-input">
+      <strong>Выберите Excel (.xlsx)</strong>
+      <span>Колонки: Адрес объекта, Статус, Тип работ</span>
+      <input type="file" name="file" accept=".xlsx,.xls" required onchange="this.form.submit()">
+    </label>
+    <button type="submit" class="btn">Построить отчёт</button>
+  </form>
+</div>
+
+{% if kpi %}
+<div class="kpi-row">
+  <div class="kpi"><div class="label">Магазины</div><div class="value">{{ kpi.shops }}</div></div>
+  <div class="kpi err"><div class="label">Не авт.</div><div class="value">{{ kpi.nonauth }}</div></div>
+  <div class="kpi warn"><div class="label">Прилегающая</div><div class="value">{{ kpi.adj }}</div></div>
+</div>
+{% endif %}
+
+{% if report_text %}
+<div class="card">
+  <div class="section-head">Ситуация</div>
+  <div class="report" id="report">{{ report_text }}</div>
+  <div class="btn-row" style="margin-top:10px;">
+    <button type="button" class="btn btn-secondary" onclick="copyReport()">Копировать</button>
+  </div>
+</div>
+{% endif %}
+
+{% if mgr_rows %}
+<div class="card">
+  <div class="card-title">Менеджеры</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Менеджер</th>
+          <th class="num">Всего</th>
+          <th class="num">Не авт.</th>
+          <th class="num">Прилег.</th>
+          <th class="num">SL</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in mgr_rows %}
+        <tr>
+          <td>{{ r.manager }}</td>
+          <td class="num">{{ r.total }}</td>
+          <td class="num">{{ r.non_auth }}</td>
+          <td class="num">{{ r.adj_only }}</td>
+          <td class="num">
+            {% set pct = (r.sl * 100) if r.sl is defined else 100 %}
+            <span class="badge {% if pct >= 95 %}ok{% elif pct >= 85 %}warn{% else %}err{% endif %}">{{ r.sl_percent }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if region_rows %}
+<div class="card">
+  <div class="card-title">Регионы</div>
+  {% for r in region_rows %}
+  <div style="margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;gap:8px;">
+      <span style="font-weight:600;">{{ r.region }}</span>
+      <strong>{{ r.sl_percent }}</strong>
+    </div>
+    {% set pct = (r.sl * 100) if r.sl is defined else 0 %}
+    <div class="sl-bar {% if pct < 85 %}err{% elif pct < 95 %}warn{% endif %}">
+      <span style="width: {{ [pct, 100]|min }}%"></span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if unmatched %}
+<div class="card">
+  <div class="card-title">Несопоставленные ({{ unmatched|length }})</div>
+  <ul class="list">
+    {% for u in unmatched %}
+    <li>
+      <div class="title">{{ u.address_short }}</div>
+      <div class="meta">{{ u.address_full }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if internal %}
+<div class="card">
+  <div class="card-title">Внутр. без прилег. ({{ internal|length }})</div>
+  <ul class="list">
+    {% for r in internal %}
+    <li>
+      <div class="title">{{ r.address_short }}</div>
+      <div class="meta">{{ r.manager }} · {{ r.reason }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if not report_text and not mgr_rows %}
+<div class="empty">Загрузите WRS-файл, чтобы построить отчёт</div>
+{% endif %}
+
+<script>
+function copyReport() {
+  var t = (document.getElementById('report') || {}).innerText || '';
+  if (!t) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(t).then(function(){ alert('Скопировано'); });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = t; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    alert('Скопировано');
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+**/__pycache__
+**/*.pyc
+.venv
+.git
+data
+*.zip
+.env
+.DS_Store
+README.md
+nixpacks.toml
+Procfile
+railway.toml

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="page-title">Магазины</h1>
+<p class="hint" style="margin-top:-8px;margin-bottom:14px;">Всего: {{ total }} · показано: {{ rows|length }}</p>
+
+<div class="card">
+  <div class="card-title">Импорт Excel</div>
+  <form action="/address-book/import" method="post" enctype="multipart/form-data">
+    <label class="file-input">
+      <strong>Файл с колонками «Адрес магазина», «Менеджер»</strong>
+      <span>Заменит текущую книгу</span>
+      <input type="file" name="file" accept=".xlsx,.xls" required onchange="this.form.submit()">
+    </label>
+    <button type="submit" class="btn">Импортировать</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">Поиск</div>
+  <form method="get" action="/address-book">
+    <input type="search" name="q" value="{{ q or '' }}" placeholder="Адрес или менеджер…" enterkeyhint="search">
+    <button type="submit" class="btn btn-secondary">Найти</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">Добавить / обновить</div>
+  <form action="/address-book/add" method="post">
+    <label class="field-label">Адрес</label>
+    <input name="address" required placeholder="Полный адрес магазина">
+    <label class="field-label">Менеджер</label>
+    <select name="manager">
+      <option value="">— не указан —</option>
+      {% for m in managers %}
+      <option value="{{ m }}">{{ m }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn">Сохранить</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">Записи</div>
+  {% if rows %}
+  <ul class="list">
+    {% for r in rows %}
+    <li>
+      <div class="title">{{ r['Адрес магазина'] }}</div>
+      <div class="meta">{{ r['Менеджер'] or '—' }}</div>
+      <form action="/address-book/delete" method="post" style="margin-top:8px;" onsubmit="return confirm('Удалить адрес?')">
+        <input type="hidden" name="address" value="{{ r['Адрес магазина'] }}">
+        <button type="submit" class="btn btn-danger" style="padding:8px 12px;font-size:12px;">Удалить</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty">Нет записей</div>
+  {% endif %}
+</div>
+{% endblock %}
